@@ -1,0 +1,38 @@
+import { Translations } from '../types';
+
+export const translations: { [key: string]: Translations } = {
+	en: {
+		add: 'Add',
+		edit: 'Edit',
+		delete: 'Delete',
+		cancel: 'Cancel',
+		save: 'Save',
+		start_time: 'Start Time',
+		end_time: 'End Time',
+		value: 'Value',
+		monday: 'Monday',
+		tuesday: 'Tuesday',
+		wednesday: 'Wednesday',
+		thursday: 'Thursday',
+		friday: 'Friday',
+		saturday: 'Saturday',
+		sunday: 'Sunday',
+	},
+	de: {
+		add: 'Hinzufügen',
+		edit: 'Bearbeiten',
+		delete: 'Löschen',
+		cancel: 'Abbrechen',
+		save: 'Speichern',
+		start_time: 'Startzeit',
+		end_time: 'Endzeit',
+		value: 'Wert',
+		monday: 'Montag',
+		tuesday: 'Dienstag',
+		wednesday: 'Mittwoch',
+		thursday: 'Donnerstag',
+		friday: 'Freitag',
+		saturday: 'Samstag',
+		sunday: 'Sonntag',
+	},
+};

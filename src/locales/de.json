@@ -1,0 +1,26 @@
+{
+	"actions": {
+		"add": "Hinzufügen",
+		"edit": "Bearbeiten",
+		"delete": "Löschen",
+		"cancel": "Abbrechen",
+		"save": "Speichern"
+	},
+	"fields": {
+		"start_time": "Startzeit",
+		"end_time": "Endzeit",
+		"value": "Wert"
+	},
+	"days": {
+		"monday": "Montag",
+		"tuesday": "Dienstag",
+		"wednesday": "Mittwoch",
+		"thursday": "Donnerstag",
+		"friday": "Freitag",
+		"saturday": "Samstag",
+		"sunday": "Sonntag"
+	},
+	"states": {
+		"loading": "Laden..."
+	}
+}

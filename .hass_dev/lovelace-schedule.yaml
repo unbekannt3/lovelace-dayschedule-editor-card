@@ -1,0 +1,14 @@
+views:
+  - title: Home
+    sections:
+      - type: grid
+        cards:
+          - type: custom:dayschedule-editor-card
+            entities:
+              monday: input_text.heating_monday
+              tuesday: input_text.heating_tuesday
+              wednesday: input_text.heating_wednesday
+              thursday: input_text.heating_thursday
+              friday: input_text.heating_friday
+              saturday: input_text.heating_saturday
+              sunday: input_text.heating_sunday

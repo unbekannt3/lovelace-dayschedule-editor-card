@@ -1,0 +1,8 @@
+{
+	"name": "Dayschedule Editor Card",
+	"version": "1.0.0",
+	"description": "A custom card for editing daily schedules using input_text entities",
+	"keywords": ["home-assistant", "lovelace", "schedule", "editor"],
+	"module": "dayschedule-editor-card.js",
+	"author": "unbekannt3"
+}

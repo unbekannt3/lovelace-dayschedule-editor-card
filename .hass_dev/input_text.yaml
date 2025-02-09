@@ -1,0 +1,27 @@
+heating_monday:
+  name: Heating Monday
+  initial: '06:00-08:00;17:00-22:00'
+
+heating_tuesday:
+  name: Heating Tuesday
+  initial: '06:00-08:00;17:00-22:00'
+
+heating_wednesday:
+  name: Heating Wednesday
+  initial: '06:00-08:00;17:00-22:00'
+
+heating_thursday:
+  name: Heating Thursday
+  initial: '06:00-08:00;17:00-22:00'
+
+heating_friday:
+  name: Heating Friday
+  initial: '06:00-08:00;14:00-23:59'
+
+heating_saturday:
+  name: Heating Saturday
+  initial: '00:00-02:00;09:00-23:59'
+
+heating_sunday:
+  name: Heating Sunday
+  initial: '00:00-02:00;09:00-22:00'

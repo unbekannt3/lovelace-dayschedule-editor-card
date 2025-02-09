@@ -1,0 +1,23 @@
+node_modules/
+.pnpm-store/
+
+dist/
+
+# who even uses this bs os which generates this in every freaking folder
+.DS_Store
+
+*.log
+
+# Home Assistant dev environment
+.hass_dev/*
+!.hass_dev/configuration.yaml
+!.hass_dev/lovelace.yaml
+!.hass_dev/lovelace-schedule.yaml
+!.hass_dev/input_text.yaml
+!.hass_dev/automations.yaml
+!.hass_dev/scripts.yaml
+!.hass_dev/scenes.yaml
+!.hass_dev/views
+!.hass_dev/www
+!.hass_dev/packages
+.hass_dev/www/community/*

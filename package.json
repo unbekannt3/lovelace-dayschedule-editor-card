@@ -1,0 +1,53 @@
+{
+	"name": "lovelace-dayschedule-editor-card",
+	"version": "1.0.0",
+	"description": "A custom card for editing daily schedules using input_text entities",
+	"main": "dist/dayschedule-editor-card.js",
+	"module": "dist/dayschedule-editor-card.js",
+	"type": "module",
+	"scripts": {
+		"build": "rollup -c",
+		"watch": "rollup -c --watch",
+		"start": "rollup -c --watch",
+		"lint": "eslint src/**/*.ts",
+		"clean": "rimraf dist",
+		"start:hass": "docker run --rm -p8123:8123 -v ./.hass_dev:/config homeassistant/home-assistant:stable",
+		"start:hass-beta": "docker run --rm -p8123:8123 -v ./.hass_dev:/config homeassistant/home-assistant:beta",
+		"start:hass-dev": "docker run --rm -p8123:8123 -v ./.hass_dev:/config homeassistant/home-assistant:dev"
+	},
+	"keywords": [
+		"home-assistant",
+		"lovelace",
+		"custom-card"
+	],
+	"author": "unbekannt3",
+	"license": "MIT",
+	"dependencies": {
+		"custom-card-helpers": "^1.9.0",
+		"home-assistant-js-websocket": "^8.0.1",
+		"lit": "^2.7.0"
+	},
+	"devDependencies": {
+		"@rollup/plugin-json": "^6.1.0",
+		"@rollup/plugin-node-resolve": "^15.0.1",
+		"@rollup/plugin-replace": "^5.0.2",
+		"@rollup/plugin-terser": "^0.4.4",
+		"@rollup/plugin-typescript": "^11.0.0",
+		"@types/node": "^18.14.6",
+		"browser-resolve": "^2.0.0",
+		"browserify": "^17.0.0",
+		"esmify": "^2.1.1",
+		"nodemon": "^3.0.1",
+		"postcss-lit": "^1.2.0",
+		"rimraf": "^5.0.1",
+		"rollup": "^3.18.0",
+		"rollup-plugin-postcss": "^4.0.2",
+		"rollup-plugin-postcss-lit": "^2.1.0",
+		"rollup-plugin-serve": "^3.0.0",
+		"typescript": "^4.9.5"
+	},
+	"engines": {
+		"node": ">=18",
+		"pnpm": ">=8"
+	}
+}

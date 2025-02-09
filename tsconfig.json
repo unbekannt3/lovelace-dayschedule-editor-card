@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"target": "es2017",
+		"module": "esnext",
+		"moduleResolution": "node",
+		"lib": ["es2017", "dom", "dom.iterable"],
+		"noEmitOnError": true,
+		"noEmit": false,
+		"strict": true,
+		"noImplicitAny": false,
+		"experimentalDecorators": true,
+		"outDir": "./dist",
+		"declaration": true,
+		"sourceMap": true,
+		"baseUrl": "./src",
+		"paths": {
+			"*": ["*"]
+		},
+		"typeRoots": ["./node_modules/@types", "./src"],
+		"types": ["node"],
+		"resolveJsonModule": true,
+		"esModuleInterop": true
+	},
+	"include": ["**/*.ts"],
+	"exclude": ["node_modules"]
+}

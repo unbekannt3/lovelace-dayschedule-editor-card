@@ -1,0 +1,26 @@
+{
+	"actions": {
+		"add": "Add",
+		"edit": "Edit",
+		"delete": "Delete",
+		"cancel": "Cancel",
+		"save": "Save"
+	},
+	"fields": {
+		"start_time": "Start Time",
+		"end_time": "End Time",
+		"value": "Value"
+	},
+	"days": {
+		"monday": "Monday",
+		"tuesday": "Tuesday",
+		"wednesday": "Wednesday",
+		"thursday": "Thursday",
+		"friday": "Friday",
+		"saturday": "Saturday",
+		"sunday": "Sunday"
+	},
+	"states": {
+		"loading": "Loading..."
+	}
+}

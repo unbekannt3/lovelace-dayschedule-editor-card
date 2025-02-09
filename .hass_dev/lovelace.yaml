@@ -1,0 +1,8 @@
+mode: storage
+dashboards:
+  lovelace-schedule:
+    mode: yaml
+    icon: mdi:clock-outline
+    show_in_sidebar: true
+    title: Dayschedule Editor Card
+    filename: lovelace-schedule.yaml
