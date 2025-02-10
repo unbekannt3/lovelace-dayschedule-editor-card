@@ -2,7 +2,7 @@
 
 A custom card for Home Assistant that provides a visual editor for weekly schedules using input_text entities.
 
-![Screenshot of Day Schedule Editor Card](screenshots/preview.png)
+![Screenshot of Day Schedule Editor Card](media/lovelace-dayschedule-editor-preview.png)
 
 ## Features
 
@@ -12,11 +12,6 @@ A custom card for Home Assistant that provides a visual editor for weekly schedu
 - Support for multiple languages (currently English and German)
 - Easy integration with Home Assistant automations through input_text entities
 - Responsive design that works on both desktop and mobile
-
-## Prerequisites
-
-- Node.js >= 18
-- pnpm >= 8 (run `npm install -g pnpm` if you don't have it installed)
 
 ## Installation
 
@@ -94,15 +89,22 @@ entities:
 
 ## Development
 
+### Prerequisites
+
+- Node.js >= 18
+- pnpm >= 8 (run `npm install -g pnpm` if you don't have it installed)
+
+### Launch rollup bundler and HA
+
 ```bash
 # Install dependencies
 pnpm install
 
-# Start a local Home Assistant instance with example configuration
-pnpm run start:hass
-
-# In another terminal, start the development server
+# Start the development server
 pnpm run watch
+
+# In another terminal, start a local Home Assistant instance with example configuration
+pnpm run start:hass
 ```
 
 ### Development Home Assistant Instance
