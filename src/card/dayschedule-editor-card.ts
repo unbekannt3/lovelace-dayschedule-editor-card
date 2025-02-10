@@ -1,25 +1,64 @@
-import { LitElement, html, css } from 'lit';
-import { property, customElement } from 'lit/decorators.js';
-import { localize, getDefaultLanguage, abbreviateDay } from '../utils/localize';
+// third party imports
 import {
+	HomeAssistant,
+	LovelaceCard,
+	LovelaceCardEditor,
+} from 'custom-card-helpers';
+import { LitElement, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+// local imports
+import { WEEKDAYS, WeekDay } from '../const/days';
+import { EDITOR_NAME, MAIN_CARD_NAME } from '../const/element-names';
+import { ITimeSlot, ITimeSlotEdit } from '../interfaces/slot.interface';
+import { ScheduleManager } from '../services/schedule-manager';
+import { StateManager } from '../services/state-manager';
+import {
+	DEFAULT_CONFIG,
 	DayEntityConfig,
 	DayscheduleEditorCardConfig,
-	DEFAULT_CONFIG,
 } from '../types/custom-types';
-import { ITimeSlot, ITimeSlotChangeEvent } from '../interfaces/slot.interface';
-import { ScheduleManager } from '../services/schedule-manager';
-import { translations } from '../const/translations';
-import { HomeAssistant, LovelaceCard } from 'custom-card-helpers';
-import { MAIN_CARD_NAME, EDITOR_NAME } from '../const/element-names';
+import useLocalize, { TranslationKey } from '../utils/localize';
 import { logger } from '../utils/logger';
-import { WEEKDAYS, WeekDay } from '../const/days';
-import { mergeOverlappingSlots } from '../utils/time-utils';
+
+// card registration
+import { registerCustomCard } from '../utils/register-card';
+registerCustomCard({
+	type: MAIN_CARD_NAME,
+	name: 'Day Schedule Editor Card',
+	description: 'A card to edit daily schedules with time slots',
+});
+
+const loadSubComponents = async () => {
+	try {
+		// Dynamically import sub-components
+		await Promise.all([
+			import('../timeslot-dialog/time-slot-dialog'),
+			import('../schedule-grid/schedule-grid'),
+			import('../editor/dayschedule-editor-card-editor'),
+		]);
+
+		// Wait for custom elements to be defined
+		await Promise.all([
+			customElements.whenDefined('dayschedule-editor-card-dialog'),
+			customElements.whenDefined('dayschedule-editor-card-grid'),
+			customElements.whenDefined('dayschedule-editor-card-editor'),
+		]);
+
+		logger.debug('All sub-components loaded successfully');
+		return true;
+	} catch (error) {
+		logger.error('Failed to load sub-components:', error);
+		return false;
+	}
+};
 
 @customElement(MAIN_CARD_NAME)
 export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 	// Add required static properties for Home Assistant
-	public static getConfigElement() {
-		return document.createElement(EDITOR_NAME);
+	public static async getConfigElement() {
+		await loadSubComponents();
+		return document.createElement(EDITOR_NAME) as LovelaceCardEditor;
 	}
 
 	public static getStubConfig() {
@@ -43,49 +82,66 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 	@property() private currentSlot: ITimeSlot | null = null;
 	@property() private currentDay: string | null = null;
 	@property() private isNewSlot = true;
-	@property() private loading = true; // Add loading state
+	@property() private loading = true;
 	private initialized = false;
 
 	private readonly days: readonly WeekDay[] = WEEKDAYS;
 	private timeSlots: { [key: string]: ITimeSlot[] } = {};
 	private scheduleManager!: ScheduleManager;
-	private translations: any;
-	private language: string;
+	private stateManager: StateManager = StateManager.getInstance();
+	private unsubscribe?: () => void;
 
-	public async connectedCallback() {
-		super.connectedCallback();
+	private async ensureInitialized() {
+		if (this.initialized) return;
 
-		// Wait for all required custom elements to be defined
-		await Promise.all([
-			customElements.whenDefined('dayschedule-editor-card-grid'),
-			customElements.whenDefined('dayschedule-editor-card-dialog'),
-		]);
+		try {
+			// First ensure all components are loaded
+			const componentsLoaded = await loadSubComponents();
+			if (!componentsLoaded) {
+				throw new Error('Failed to load required components');
+			}
 
-		if (!this.initialized && this.hass) {
+			// Then initialize schedule manager and load data
+			if (!this.scheduleManager && this.hass && this.config) {
+				this.scheduleManager = new ScheduleManager(
+					this.hass,
+					this.config.entities
+				);
+				await this.loadAllSchedules();
+			}
+
 			this.initialized = true;
-			await this.loadAllSchedules();
+			logger.info('Card fully initialized');
+		} catch (error) {
+			logger.error('Failed to initialize card:', error);
+		}
+	}
+
+	public connectedCallback() {
+		super.connectedCallback();
+		this.unsubscribe = this.stateManager.subscribe(
+			'main-card',
+			(day: WeekDay, slots: ITimeSlot[]) => {
+				this.timeSlots = {
+					...this.timeSlots,
+					[day]: slots,
+				};
+				this.requestUpdate();
+			}
+		);
+		this.ensureInitialized();
+	}
+
+	public disconnectedCallback() {
+		super.disconnectedCallback();
+		if (this.unsubscribe) {
+			this.unsubscribe();
 		}
 	}
 
 	public updated(changedProps: Map<string, any>) {
-		if (changedProps.has('hass')) {
-			logger.debug(
-				'HASS updated:',
-				'available:',
-				Boolean(this.hass),
-				'initialized:',
-				this.initialized,
-				'hasScheduleManager:',
-				Boolean(this.scheduleManager)
-			);
-
-			if (this.hass) {
-				if (!this.scheduleManager && this.config) {
-					void this.initializeScheduleManager();
-				} else if (this.scheduleManager) {
-					this.scheduleManager.updateHass(this.hass);
-				}
-			}
+		if (changedProps.has('hass') || changedProps.has('config')) {
+			this.ensureInitialized();
 		}
 	}
 
@@ -127,37 +183,41 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 			...config,
 		} as DayscheduleEditorCardConfig; // Safe to cast here as we've validated the structure
 
-		// Initialize ScheduleManager only if we have hass
-		if (this.hass) {
+		// Nur initialisieren wenn HASS bereits verfügbar ist
+		if (this.hass && !this.scheduleManager) {
 			logger.debug('Config set with HASS available, initializing...');
-			this.initializeScheduleManager();
+			void this.initializeScheduleManager();
 		} else {
 			logger.debug('Config set but waiting for HASS...');
 		}
 	}
 
 	private async initializeScheduleManager() {
+		if (this.scheduleManager) {
+			logger.debug('ScheduleManager already initialized, skipping');
+			return;
+		}
+
 		logger.debug('Initializing ScheduleManager with HASS');
 		this.scheduleManager = new ScheduleManager(this.hass, this.config.entities);
-		// wait for next render cycle to load schedules
-		await new Promise((resolve) => requestAnimationFrame(resolve));
-		await this.loadAllSchedules();
+
+		// Nur einmal initial laden
+		if (!this.initialized) {
+			this.initialized = true;
+			await this.loadAllSchedules();
+		}
 	}
 
 	constructor() {
 		super();
-		const lang = navigator.language.split('-')[0];
-		this.translations = translations[lang] || translations['en'];
-		this.language = getDefaultLanguage();
 	}
 
-	private get t() {
-		return (key: string) => localize(key as any, this.language);
+	private getTranslation(key: TranslationKey): string {
+		return useLocalize(this.hass)(key);
 	}
 
 	protected async firstUpdated() {
-		// Remove initial load since we'll load when hass is available
-		// await this.loadAllSchedules();
+		await this.ensureInitialized();
 	}
 
 	private async loadAllSchedules() {
@@ -166,9 +226,8 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 			return;
 		}
 
-		this.loading = true; // Start loading
+		this.loading = true;
 		try {
-			logger.debug('Starting to load schedules...');
 			const schedules = await Promise.all(
 				this.days.map(async (day) => ({
 					day,
@@ -176,22 +235,19 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 				}))
 			);
 
+			// Neues Objekt erstellen um Referenz zu ändern
 			this.timeSlots = schedules.reduce((acc, { day, slots }) => {
-				acc[day] = slots;
+				acc[day] = [...slots];
 				return acc;
 			}, {} as { [key: string]: ITimeSlot[] });
 
-			logger.debug('Successfully loaded schedules:', this.timeSlots);
+			// Explizites Update anfordern
+			this.requestUpdate();
 		} catch (error) {
 			logger.error('Failed to load schedules:', error);
 		} finally {
-			this.loading = false; // End loading
-			this.requestUpdate();
+			this.loading = false;
 		}
-	}
-
-	private handleTimeSlotChange(event: CustomEvent<ITimeSlotChangeEvent>) {
-		// Handle schedule changes
 	}
 
 	private handleGridClick(e: CustomEvent) {
@@ -242,55 +298,54 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 	}
 
 	private async handleDialogClosed(event: CustomEvent) {
-		logger.debug('Dialog closed with event:', event.detail);
-		if (!this.currentDay) return;
+		if (!this.currentDay || event.detail.type === 'cancel') {
+			this.dialogOpen = false;
+			this.currentSlot = null;
+			this.currentDay = null;
+			return;
+		}
+
+		const dayToUpdate = this.currentDay as WeekDay;
+		const nextDay =
+			WEEKDAYS[(WEEKDAYS.indexOf(dayToUpdate) + 1) % WEEKDAYS.length];
 
 		try {
-			let updatedSlots = [...(this.timeSlots[this.currentDay] || [])];
+			let slotsToSave = [...(this.timeSlots[dayToUpdate] || [])];
 
+			// Update slots based on action
 			if (event.detail.type === 'delete') {
-				updatedSlots = updatedSlots.filter(
+				const slotToDelete = event.detail.slot as ITimeSlot;
+				slotsToSave = slotsToSave.filter(
 					(slot) =>
-						slot.start !== this.currentSlot?.start ||
-						slot.end !== this.currentSlot?.end
+						slot.start !== slotToDelete.start || slot.end !== slotToDelete.end
 				);
-			} else if (
-				(event.detail.type === 'add' || event.detail.type === 'edit') &&
-				event.detail.slot
-			) {
-				if (this.isNewSlot) {
-					updatedSlots = [...updatedSlots, event.detail.slot];
-				} else {
-					const index = updatedSlots.findIndex(
-						(slot) =>
-							slot.start === this.currentSlot?.start &&
-							slot.end === this.currentSlot?.end
-					);
-					if (index >= 0) {
-						updatedSlots[index] = event.detail.slot;
-					}
-				}
+			} else if (event.detail.type === 'edit') {
+				const { oldSlot, newSlot } = event.detail.slot as ITimeSlotEdit;
+				slotsToSave = slotsToSave.map((slot) =>
+					slot.start === oldSlot?.start && slot.end === oldSlot?.end
+						? newSlot
+						: slot
+				);
+			} else if (event.detail.type === 'add') {
+				slotsToSave = [...slotsToSave, event.detail.slot as ITimeSlot];
 			}
 
-			// Merge overlapping slots
-			const mergedSlots = mergeOverlappingSlots(updatedSlots);
-
-			// Update state with merged slots
-			this.timeSlots = {
-				...this.timeSlots,
-				[this.currentDay]: mergedSlots,
-			};
-
 			// Save changes
-			await this.scheduleManager.saveSchedule(this.currentDay, mergedSlots);
-			logger.debug(`Saved merged slots for ${this.currentDay}:`, mergedSlots);
+			await this.scheduleManager.saveSchedule(dayToUpdate, slotsToSave);
 
-			// Clear dialog state
+			// Dialog schließen
 			this.dialogOpen = false;
 			this.currentSlot = null;
 			this.currentDay = null;
 
-			this.requestUpdate('timeSlots');
+			// Update state through StateManager
+			const [currentDaySlots, nextDaySlots] = await Promise.all([
+				this.scheduleManager.loadSchedule(dayToUpdate),
+				this.scheduleManager.loadSchedule(nextDay),
+			]);
+
+			this.stateManager.updateState(dayToUpdate, currentDaySlots);
+			this.stateManager.updateState(nextDay, nextDaySlots);
 		} catch (error) {
 			logger.error('Failed to handle dialog action:', error);
 		}
@@ -298,10 +353,11 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 
 	protected render() {
 		if (!this.config || !this.hass) return html``;
-		if (this.loading) return html`<div>${this.t('states.loading')}</div>`;
+		if (this.loading)
+			return html`<div>${this.getTranslation('states.loading')}</div>`;
 
 		const dayTranslations = this.days.reduce((acc, day) => {
-			acc[day] = abbreviateDay(day, this.language);
+			acc[day] = this.getTranslation(`daysShort.${day}` as TranslationKey);
 			return acc;
 		}, {} as Record<string, string>);
 
@@ -326,8 +382,17 @@ export class DayscheduleEditorCard extends LitElement implements LovelaceCard {
 					? html`
 							<dayschedule-editor-card-dialog
 								?open=${true}
+								.hass=${this.hass}
 								.timeSlot=${this.currentSlot}
-								.translations=${this.translations}
+								.translations=${{
+									add: this.getTranslation('actions.add'),
+									edit: this.getTranslation('actions.edit'),
+									delete: this.getTranslation('actions.delete'),
+									cancel: this.getTranslation('actions.cancel'),
+									save: this.getTranslation('actions.save'),
+									start_time: this.getTranslation('fields.start_time'),
+									end_time: this.getTranslation('fields.end_time'),
+								}}
 								.isNew=${this.isNewSlot}
 								@dialog-closed=${this.handleDialogClosed}
 							></dayschedule-editor-card-dialog>

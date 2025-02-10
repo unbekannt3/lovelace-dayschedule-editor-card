@@ -1,10 +1,13 @@
+import { HomeAssistant, LovelaceCardEditor } from 'custom-card-helpers';
 import { LitElement, html } from 'lit';
-import { DayscheduleEditorCardConfig } from '../types/custom-types';
-import { HomeAssistant } from 'custom-card-helpers';
-import { EDITOR_NAME } from '../const/element-names';
 import { WEEKDAYS } from '../const/days';
+import { EDITOR_NAME } from '../const/element-names';
+import { DayscheduleEditorCardConfig } from '../types/custom-types';
 
-export class DayscheduleEditorCardEditor extends LitElement {
+export class DayscheduleEditorCardEditor
+	extends LitElement
+	implements LovelaceCardEditor
+{
 	private _config?: DayscheduleEditorCardConfig;
 	private _hass?: HomeAssistant;
 

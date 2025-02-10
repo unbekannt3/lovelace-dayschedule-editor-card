@@ -3,9 +3,14 @@ export interface ITimeSlot {
 	end: string;
 }
 
+export interface ITimeSlotEdit {
+	oldSlot: ITimeSlot | null;
+	newSlot: ITimeSlot;
+}
+
 export interface ITimeSlotChangeEvent {
 	type: 'add' | 'edit' | 'delete' | 'cancel';
-	slot: ITimeSlot;
+	slot: ITimeSlot | ITimeSlotEdit;
 	day: string;
 	saved: boolean;
 }

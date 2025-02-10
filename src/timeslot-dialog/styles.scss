@@ -1,0 +1,202 @@
+:host {
+	display: none;
+}
+
+:host([open]) {
+	display: flex; // Änderung zu flex
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 1000;
+	align-items: center; // Vertikale Zentrierung
+	justify-content: center; // Horizontale Zentrierung
+}
+
+.dialog-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+	z-index: 1000;
+}
+
+.dialog-container {
+	position: fixed; // Änderung von relative zu fixed
+	left: 50%; // Horizontale Zentrierung
+	top: 50%; // Vertikale Zentrierung
+	transform: translate(-50%, -50%); // Perfekte Zentrierung
+	z-index: 1001;
+	background: var(--card-background-color, white);
+	border-radius: 12px;
+	width: 300px; // Feste Breite
+	margin: 0; // Margin entfernt, da wir transform nutzen
+	padding: 24px; // Mehr Padding
+	box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+.dialog-header {
+	font-size: 1.2em;
+	font-weight: bold;
+	margin-bottom: 24px;
+	color: var(--primary-text-color);
+}
+
+.dialog-content {
+	margin-bottom: 24px;
+
+	.field {
+		margin-bottom: 16px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+}
+
+label {
+	display: block;
+	margin-bottom: 8px;
+	color: var(--primary-text-color);
+	font-size: 0.9em;
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box; // Wichtig für korrekte Breite
+	padding: 8px 12px;
+	border: 1px solid var(--divider-color, #ccc);
+	border-radius: 8px;
+	background: var(--card-background-color);
+	color: var(--primary-text-color);
+	font-size: 1em;
+
+	&:focus {
+		outline: none;
+		border-color: var(--primary-color);
+	}
+}
+
+.dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+
+	button {
+		min-width: 80px; // Ensure buttons don't resize with spinner
+		height: 30px; // Feste Höhe
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 16px;
+		gap: 8px;
+		position: relative;
+		overflow: hidden; // Wichtig für das Overlay
+
+		.button-content {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			opacity: 1;
+			transition: opacity 0.2s;
+		}
+
+		.loading-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: inherit;
+
+			.spinner {
+				width: 14px;
+				height: 14px;
+				border: 2px solid currentColor;
+				border-right-color: transparent;
+				border-radius: 50%;
+				animation: spin 0.75s linear infinite;
+			}
+		}
+
+		&[data-loading='true'] {
+			pointer-events: none;
+
+			.button-content {
+				opacity: 0.3;
+			}
+		}
+
+		ha-icon {
+			--mdc-icon-size: 18px;
+			display: flex;
+		}
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.spinner {
+			width: 12px; // Noch kleiner
+			height: 12px;
+			border: 1.5px solid currentColor; // Dünnerer Rand
+			border-right-color: transparent;
+			border-radius: 50%;
+			animation: spin 0.75s linear infinite;
+			display: block;
+			margin: 0 9px; // Kompensiert die Icon-Breite
+			position: static; // Entfernt absolute positioning
+		}
+	}
+}
+
+button {
+	padding: 8px 16px;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 0.9em;
+	transition: all 0.2s ease;
+
+	&.save {
+		background: var(--primary-color);
+		color: var(--text-primary-color, white);
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+
+	&.delete {
+		background: var(--error-color, #dc3545);
+		color: white;
+	}
+
+	&.cancel {
+		background: var(--secondary-background-color, #e0e0e0);
+		color: var(--primary-text-color);
+	}
+
+	&:hover:not(:disabled) {
+		filter: brightness(1.1);
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}

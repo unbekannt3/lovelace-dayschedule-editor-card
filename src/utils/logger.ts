@@ -1,7 +1,6 @@
 const isDevelopment = process.env.NODE_ENV === 'development';
 const PREFIX = '  DAYSCHEDULE EDITOR CARD  ';
 const PREFIX_STYLE = 'color: orange; font-weight: bold; background: black';
-const MESSAGE_STYLE = 'color: unset; font-weight: normal; background: unset';
 
 export const logger = {
 	debug: (...args: any[]) => {

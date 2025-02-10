@@ -6,10 +6,13 @@
 		"cancel": "Cancel",
 		"save": "Save"
 	},
+	"timeslot": {
+		"add": "Add Timeslot",
+		"edit": "Edit Timeslot"
+	},
 	"fields": {
 		"start_time": "Start Time",
-		"end_time": "End Time",
-		"value": "Value"
+		"end_time": "End Time"
 	},
 	"days": {
 		"monday": "Monday",
@@ -19,6 +22,15 @@
 		"friday": "Friday",
 		"saturday": "Saturday",
 		"sunday": "Sunday"
+	},
+	"daysShort": {
+		"monday": "Mon",
+		"tuesday": "Tue",
+		"wednesday": "Wed",
+		"thursday": "Thu",
+		"friday": "Fri",
+		"saturday": "Sat",
+		"sunday": "Sun"
 	},
 	"states": {
 		"loading": "Loading..."

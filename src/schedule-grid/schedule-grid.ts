@@ -1,153 +1,85 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import { property } from 'lit/decorators.js';
+import { WeekDay } from '../const/days';
+import { GRID_NAME } from '../const/element-names';
 import { ITimeSlot } from '../interfaces/slot.interface';
-import styles from '../card/styles.css';
-import { logger } from '../utils/logger';
-import { GRID_NAME } from 'const/element-names';
+import { StateManager } from '../services/state-manager';
+import styles from './styles.scss';
 
 export class ScheduleGrid extends LitElement {
-	@property({ type: Array }) days: string[] = [];
-	@property({ type: Object }) timeSlots: { [key: string]: ITimeSlot[] } = {};
+	static styles = unsafeCSS(styles);
+
+	@property({
+		type: Array,
+		hasChanged: (newVal: unknown, oldVal: unknown) => true,
+	})
+	days: string[] = [];
+
+	@property({
+		type: Object,
+		hasChanged: () => true,
+	})
+	timeSlots: { [key: string]: ITimeSlot[] } = {};
+
 	@property({ type: Object }) translations: { [key: string]: string } = {};
 
-	static styles = css`
-		:host {
-			display: block;
-			position: relative;
-			min-height: 600px;
-			height: 100%;
-		}
+	private readonly HOUR_HEIGHT = 25; // height of one hour in pixels
+	private readonly TOTAL_HOURS = 24;
+	private readonly GRID_HEIGHT = this.HOUR_HEIGHT * this.TOTAL_HOURS;
+	private readonly SLOT_OFFSET = 6; // pixel offset for match height with time labels
+	private readonly END_ADJUSTMENT = 10; // pixel adjustment for slots that end at 23:59
 
-		.grid-layout {
-			display: flex;
-			flex-direction: column;
-			height: 100%;
-			min-height: 600px;
-			position: relative;
-		}
-
-		.day-headers {
-			display: flex;
-			padding-left: 60px;
-			flex: 0 0 auto;
-			position: sticky;
-			top: 0;
-			z-index: 2;
-			background: var(--card-background-color);
-		}
-
-		.day-header {
-			flex: 1;
-			text-align: center;
-			font-weight: bold;
-			padding: 8px 4px;
-			min-width: 0;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.schedule-grid {
-			display: flex;
-			flex: 1;
-			min-height: 600px;
-			border: 1px solid var(--divider-color);
-			border-radius: 4px;
-			margin: 8px 0;
-			position: relative;
-			overflow: hidden;
-		}
-
-		.time-column {
-			flex: 0 0 60px;
-			border-right: 1px solid var(--divider-color);
-			background: var(--card-background-color);
-			position: sticky;
-			left: 0;
-			z-index: 1;
-		}
-
-		.day-columns {
-			display: flex;
-			flex: 1;
-			position: relative;
-		}
-
-		.day-column {
-			flex: 1;
-			position: relative;
-			border-right: 1px solid var(--divider-color);
-			min-height: 600px;
-			height: 600px; /* Feste Höhe für korrekte Berechnungen */
-		}
-
-		.add-buttons-container {
-			display: flex;
-			padding-left: 60px;
-			margin-top: 8px;
-			flex: 0 0 auto;
-			position: sticky;
-			bottom: 0;
-			z-index: 2;
-			background: var(--card-background-color);
-		}
-
-		.add-button {
-			flex: 1;
-			margin: 0 4px;
-			padding: 8px;
-			border: 1px dashed var(--primary-color);
-			border-radius: 4px;
-			text-align: center;
-			cursor: pointer;
-			background: var(--card-background-color);
-		}
-
-		.add-button:hover {
-			background: var(--primary-color);
-			color: var(--text-primary-color);
-		}
-
-		.time-slot {
-			position: absolute;
-			left: 4px;
-			right: 4px;
-			background: var(--primary-color);
-			color: var(--text-primary-color);
-			border-radius: 4px;
-			padding: 4px;
-			font-size: 0.8em;
-			cursor: pointer;
-			z-index: 1;
-			min-height: 20px; /* Minimale Höhe für bessere Lesbarkeit */
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			text-align: center;
-			line-height: 1.2;
-		}
-
-		.time-slot-time {
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			width: 100%;
-		}
-	`;
+	private stateManager: StateManager = StateManager.getInstance();
+	private unsubscribe?: () => void;
 
 	private calculatePosition(time: string): number {
 		const [hours, minutes] = time.split(':').map(Number);
-		const totalMinutes = hours * 60 + minutes;
-		return (totalMinutes / (24 * 60)) * 100;
+		const basePosition = (hours + minutes / 60) * this.HOUR_HEIGHT;
+		// no offset for slots that start at 00:00
+		return hours === 0 && minutes === 0
+			? basePosition
+			: basePosition + this.SLOT_OFFSET;
 	}
 
 	private calculateHeight(start: string, end: string): number {
-		const [startHours, startMinutes] = start.split(':').map(Number);
-		const [endHours, endMinutes] = end.split(':').map(Number);
-		const startTotalMinutes = startHours * 60 + startMinutes;
-		const endTotalMinutes = endHours * 60 + endMinutes;
-		const duration = endTotalMinutes - startTotalMinutes;
-		return (duration / (24 * 60)) * 100;
+		const startPos = this.calculatePosition(start);
+		let endPos = this.calculatePosition(end);
+
+		if (end === '23:59') {
+			// adjust end position for slots that end at 23:59
+			endPos = this.GRID_HEIGHT - this.END_ADJUSTMENT;
+		}
+
+		return Math.max(endPos - startPos, 20);
+	}
+
+	connectedCallback() {
+		super.connectedCallback();
+		this.unsubscribe = this.stateManager.subscribe(
+			'schedule-grid',
+			(day: WeekDay, slots: ITimeSlot[]) => {
+				// Neues Objekt erstellen für bessere Reaktivität
+				this.timeSlots = {
+					...this.timeSlots,
+					[day]: [...slots],
+				};
+
+				// Explizites Update erzwingen
+				this.requestUpdate();
+
+				// Render in der nächsten Frame
+				requestAnimationFrame(() => {
+					this.requestUpdate();
+				});
+			}
+		);
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		if (this.unsubscribe) {
+			this.unsubscribe();
+		}
 	}
 
 	protected render() {
@@ -165,7 +97,11 @@ export class ScheduleGrid extends LitElement {
 					<div class="time-column">
 						${Array.from(
 							{ length: 24 },
-							(_, i) => html` <div style="height: 25px;">${i}:00</div> `
+							(_, i) => html`
+								<div class="time-label">
+									${i.toString().padStart(2, '0')}:00
+								</div>
+							`
 						)}
 					</div>
 					<div class="day-columns">
@@ -211,18 +147,17 @@ export class ScheduleGrid extends LitElement {
 	}
 
 	private renderTimeSlot(day: string, slot: ITimeSlot) {
-		const top = this.calculatePosition(slot.start);
-		const height = this.calculateHeight(slot.start, slot.end);
+		const topPx = this.calculatePosition(slot.start);
+		const heightPx = this.calculateHeight(slot.start, slot.end);
+
 		return html`
 			<div
 				class="time-slot"
-				style="top: ${top}%; height: ${height}%;"
+				style="top: ${topPx}px; height: ${heightPx}px;"
 				@click=${(e: MouseEvent) => {
 					e.stopPropagation();
 					this.dispatchEvent(
-						new CustomEvent('slot-click', {
-							detail: { day, slot, event: e },
-						})
+						new CustomEvent('slot-click', { detail: { day, slot, event: e } })
 					);
 				}}
 			>

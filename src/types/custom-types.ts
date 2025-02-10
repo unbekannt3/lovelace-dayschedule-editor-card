@@ -1,11 +1,5 @@
 import { LovelaceCardConfig } from 'custom-card-helpers';
 
-export interface TimeSlot {
-	start: string;
-	end: string;
-	value: string;
-}
-
 export interface Translations {
 	add: string;
 	edit: string;

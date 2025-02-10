@@ -1,7 +1,6 @@
-import en from '../locales/en.json';
-import de from '../locales/de.json';
-import { logger } from './logger';
-import { WeekDay } from 'const/days';
+import { HomeAssistant } from 'custom-card-helpers';
+import * as de from '../locales/de.json';
+import * as en from '../locales/en.json';
 
 type AllowedDayKeys =
 	| 'days.monday'
@@ -20,44 +19,42 @@ type NestedKeyOf<ObjectType extends object> = {
 
 export type TranslationKey = NestedKeyOf<typeof en> | AllowedDayKeys;
 
-const TRANSLATIONS: { [key: string]: any } = {
-	en,
+const languages: Record<string, unknown> = {
 	de,
+	en,
 };
 
-export function getDefaultLanguage(): string {
-	return navigator.language.split('-')[0] || 'en';
-}
+const DEFAULT_LANG = 'en';
 
-export function localize(
+function getTranslatedString(
 	key: TranslationKey,
-	lang: string = getDefaultLanguage()
-): string {
-	const translation = TRANSLATIONS[lang] || TRANSLATIONS.en;
-	const paths = key.split('.');
-	let current = translation;
-
-	for (const path of paths) {
-		if (current[path] === undefined) {
-			logger.warn(`No translation found for ${key} in ${lang}`);
-			current = TRANSLATIONS.en;
-			for (const fallbackPath of paths) {
-				if (current[fallbackPath] === undefined) {
-					return key;
-				}
-				current = current[fallbackPath];
-			}
-			return current;
-		}
-		current = current[path];
+	lang: string
+): string | undefined {
+	try {
+		return key
+			.split('.')
+			.reduce(
+				(o, i) => (o as Record<string, unknown>)[i],
+				languages[lang]
+			) as string;
+	} catch (_) {
+		return undefined;
 	}
-
-	return current;
 }
 
-export function abbreviateDay(day: WeekDay, language: string): string {
-	const translationKey = `days.${day}` as AllowedDayKeys;
-	const dayName = localize(translationKey, language);
-	const abbrevLength = language === 'de' ? 2 : 3;
-	return dayName.substring(0, abbrevLength);
+/**
+ * @usage
+ * const localize = useLocalize(hass);
+ *
+ * localize("translation_key");
+ * @param hass HomeAssistant instance
+ */
+export default function useLocalize(hass?: HomeAssistant) {
+	return function (key: TranslationKey): string {
+		const lang = hass?.locale.language ?? DEFAULT_LANG;
+
+		let translated = getTranslatedString(key, lang);
+		if (!translated) translated = getTranslatedString(key, DEFAULT_LANG);
+		return translated ?? key;
+	};
 }
