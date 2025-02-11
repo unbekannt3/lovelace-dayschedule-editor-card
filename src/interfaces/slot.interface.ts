@@ -1,3 +1,5 @@
+import { ETimeSlotType } from 'enums/slot.enum';
+
 export interface ITimeSlot {
 	start: string;
 	end: string;
@@ -9,7 +11,7 @@ export interface ITimeSlotEdit {
 }
 
 export interface ITimeSlotChangeEvent {
-	type: 'add' | 'edit' | 'delete' | 'cancel';
+	type: ETimeSlotType;
 	slot: ITimeSlot | ITimeSlotEdit;
 	day: string;
 	saved: boolean;

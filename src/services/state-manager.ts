@@ -41,20 +41,33 @@ export class StateManager {
 
 	public updateState(day: WeekDay, slots: ITimeSlot[]): void {
 		logger.debug(`StateManager: Updating state for ${day}`, slots);
-		this.state[day] = [...slots];
-		this.notifySubscribers(day, slots);
+
+		// Tiefe Kopie der Slots erstellen
+		this.state[day] = slots.map((slot) => ({ ...slot }));
+
+		// Verzögertes Benachrichtigen der Subscriber
+		setTimeout(() => {
+			this.notifySubscribers(day, this.state[day]);
+		}, 0);
 	}
 
 	public getState(day: WeekDay): ITimeSlot[] {
 		return this.state[day] || [];
 	}
 
-	private notifySubscribers(day: WeekDay, slots: ITimeSlot[]): void {
+	private notifySubscribers(
+		day: WeekDay,
+		slots: ITimeSlot[] | undefined
+	): void {
 		this.subscribers.forEach((callbacks, componentId) => {
 			logger.debug(`StateManager: Notifying ${componentId} for ${day}`);
 			callbacks.forEach((callback) => {
 				try {
-					callback(day, slots);
+					// Ensure we always pass an array, even if empty
+					const validSlots = slots || [];
+					// Tiefe Kopie für jeden Subscriber
+					const slotsCopy = validSlots.map((slot) => ({ ...slot }));
+					callback(day, slotsCopy);
 				} catch (error) {
 					logger.error(`Error notifying subscriber ${componentId}:`, error);
 				}

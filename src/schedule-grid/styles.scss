@@ -159,7 +159,6 @@ $hour-height: 25px;
 		}
 
 		&:hover {
-			transform: translateY(-1px);
 			box-shadow: var(--ha-card-box-shadow, 0 3px 3px 0 rgba(0, 0, 0, 0.2));
 
 			:host([data-theme='dark']) & {
@@ -171,7 +170,6 @@ $hour-height: 25px;
 		}
 
 		&:active {
-			transform: translateY(0);
 			box-shadow: var(--ha-card-box-shadow, 0 1px 1px 0 rgba(0, 0, 0, 0.14));
 
 			:host([data-theme='dark']) & {
@@ -206,7 +204,6 @@ $hour-height: 25px;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 
 	&:hover {
-		transform: translateY(-1px);
 		box-shadow: var(--ha-card-box-shadow, 0 3px 3px 0 rgba(0, 0, 0, 0.14));
 	}
 
@@ -216,5 +213,42 @@ $hour-height: 25px;
 		text-overflow: ellipsis;
 		width: 100%;
 		opacity: 0.9;
+	}
+
+	.resize-handle {
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 12px;
+		cursor: ns-resize;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		opacity: 0.3;
+		transition: opacity 0.2s ease;
+
+		&::after {
+			content: '';
+			width: 20px;
+			height: 4px;
+			background: currentColor;
+			border-radius: 2px;
+		}
+
+		&:hover {
+			opacity: 1;
+		}
+
+		&.top {
+			top: -2px;
+		}
+
+		&.bottom {
+			bottom: -2px;
+		}
+	}
+
+	&:hover .resize-handle {
+		opacity: 0.8;
 	}
 }

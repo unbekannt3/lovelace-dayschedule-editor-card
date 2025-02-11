@@ -28,18 +28,22 @@ export function mergeOverlappingSlots(slots: ITimeSlot[]): ITimeSlot[] {
 
 	logger.debug('Sorting slots:', timeRanges);
 
-	// merge overlapping time ranges
+	// merge overlapping and adjacent time ranges
 	const merged = [timeRanges[0]];
 	for (let i = 1; i < timeRanges.length; i++) {
 		const current = timeRanges[i];
 		const previous = merged[merged.length - 1];
 
-		if (current.start <= previous.end) {
-			// found overlapping slots - merge them
+		// check for overlap or direct adjacency (end = start)
+		if (current.start <= previous.end || current.start === previous.end) {
+			// merge the slots
 			previous.end = Math.max(previous.end, current.end);
-			logger.debug('Merged overlapping slots:', { previous, current });
+			logger.debug('Merged adjacent or overlapping slots:', {
+				previous,
+				current,
+			});
 		} else {
-			// no overlap - add current slot to the list
+			// no overlap or adjacency - add as new slot
 			merged.push(current);
 		}
 	}

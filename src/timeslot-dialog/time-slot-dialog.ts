@@ -1,10 +1,12 @@
 import { HomeAssistant } from 'custom-card-helpers';
+import { ETimeSlotType } from 'enums/slot.enum';
 import { LitElement, html, unsafeCSS } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { Subscription } from 'rxjs';
 import { logger } from 'utils/logger';
 import { DIALOG_NAME } from '../const/element-names';
 import { ITimeSlot, ITimeSlotChangeEvent } from '../interfaces/slot.interface';
-import { StateManager } from '../services/state-manager';
+import { ScheduleStore } from '../store/schedule.store';
 import useLocalize from '../utils/localize';
 import styles from './styles.scss';
 
@@ -26,17 +28,20 @@ export class TimeSlotDialog extends LitElement {
 	@property({ type: String }) private _startTime = '00:00';
 	@property({ type: String }) private _endTime = '00:00';
 	private currentSlot: ITimeSlot = { start: '00:00', end: '00:00' };
-	private stateManager: StateManager = StateManager.getInstance();
 	private unsubscribe?: () => void;
+	private store = ScheduleStore.getInstance();
+	private subscription?: Subscription;
 
 	connectedCallback() {
 		super.connectedCallback();
-		this.unsubscribe = this.stateManager.subscribe('time-slot-dialog', () => {
-			// Dialog braucht nur ein Update wenn sich der aktuelle Slot ändert
-			if (this.currentSlot) {
-				this.requestUpdate();
-			}
-		});
+		this.subscription = this.store
+			.getDialogState$()
+			.subscribe((dialogState) => {
+				if (dialogState.currentSlot) {
+					this.currentSlot = dialogState.currentSlot;
+					this.requestUpdate();
+				}
+			});
 	}
 
 	disconnectedCallback() {
@@ -44,6 +49,7 @@ export class TimeSlotDialog extends LitElement {
 		if (this.unsubscribe) {
 			this.unsubscribe();
 		}
+		this.subscription?.unsubscribe();
 	}
 
 	protected firstUpdated(): void {
@@ -94,7 +100,12 @@ export class TimeSlotDialog extends LitElement {
 
 		this.dispatchEvent(
 			new CustomEvent<ITimeSlotChangeEvent>('dialog-closed', {
-				detail: { type: 'cancel', slot: this.timeSlot, day: '', saved: false },
+				detail: {
+					type: ETimeSlotType.CANCEL,
+					slot: this.timeSlot,
+					day: '',
+					saved: false,
+				},
 			})
 		);
 	}
@@ -108,14 +119,15 @@ export class TimeSlotDialog extends LitElement {
 				this.dispatchEvent(
 					new CustomEvent<ITimeSlotChangeEvent>('dialog-closed', {
 						detail: {
-							type: 'delete',
+							type: ETimeSlotType.DELETE,
 							slot: this.originalSlot || this.timeSlot,
 							day: '',
 							saved: true,
 						},
 					})
 				);
-				resolve();
+				// Warte mindestens 500ms bevor der Dialog geschlossen wird
+				setTimeout(resolve, 500);
 			});
 		} catch (error) {
 			this.loadingAction = null;
@@ -126,14 +138,13 @@ export class TimeSlotDialog extends LitElement {
 	private async handleSave(): Promise<void> {
 		if (!this.validateTimeSlot() || this.loadingAction) return;
 
-		this.loadingAction = 'save';
 		try {
-			// Event auslösen und auf Verarbeitung warten
+			this.loadingAction = 'save';
 			await new Promise<void>((resolve) => {
 				this.dispatchEvent(
 					new CustomEvent<ITimeSlotChangeEvent>('dialog-closed', {
 						detail: {
-							type: this.isNew ? 'add' : 'edit',
+							type: this.isNew ? ETimeSlotType.ADD : ETimeSlotType.EDIT,
 							slot: this.isNew
 								? this.currentSlot
 								: {
@@ -147,7 +158,8 @@ export class TimeSlotDialog extends LitElement {
 						composed: true,
 					})
 				);
-				resolve();
+				// Warte mindestens 500ms bevor der Dialog geschlossen wird
+				setTimeout(resolve, 500);
 			});
 		} catch (error) {
 			this.loadingAction = null;
